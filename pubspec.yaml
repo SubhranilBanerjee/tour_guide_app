@@ -25,6 +25,8 @@ dependencies:
   gradient_borders: ^1.0.0
   confetti: ^0.7.0
   video_player: ^2.9.0
+  smooth_page_indicator: ^1.1.0  
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:
