@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-
+import 'admin_dashboard_page.dart';
 import 'post_details_page.dart';
 import 'activity_details_page.dart';
 import 'home_page.dart';
@@ -32,6 +32,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool editingBio = false;
   bool editingLinks = false;
   bool isOwner = false;
+  String? userRole;
 
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _facebookController = TextEditingController();
@@ -68,6 +69,10 @@ class _ProfilePageState extends State<ProfilePage> {
         .from('activities')
         .select('*')
         .eq('user_id', profileUserId);
+
+    setState(() {
+      userRole = profile['role'];
+    });
 
     imageUrl = profile['profile_image_url'];
     _bioController.text = profile['bio'] ?? "";
@@ -559,6 +564,14 @@ class _ProfilePageState extends State<ProfilePage> {
               () => _navigateTo(context, const UserDashboardPage())),
           _buildDrawerItem(Icons.confirmation_num, "My Tickets",
               () => _navigateTo(context, const MyTicketsPage())),
+          if (userRole == 'admin')
+            _buildDrawerItem(Icons.admin_panel_settings, "Admin Dashboard", () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminDashboard()),
+              );
+            }),
           const Divider(),
           _buildDrawerItem(Icons.logout, "Sign Out", () => _signOut(context)),
         ],

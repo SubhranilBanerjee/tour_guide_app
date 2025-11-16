@@ -431,221 +431,288 @@ class _PostsPageState extends State<PostsPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
+      backgroundColor: Colors.transparent, // Floating style
       builder: (context) {
-        return StatefulBuilder(
-            builder: (BuildContext context, StateSetter setModalState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Create New Post",
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
-                        ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 📝 Title
-                  TextField(
-                    controller: titleController,
-                    decoration: InputDecoration(
-                      labelText: "Title *",
-                      hintText: "Enter post title",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.title),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  // 📄 Description
-                  TextField(
-                    controller: descController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: "Description",
-                      hintText: "Tell us more about your post",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.description),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  // 📍 Location
-                  TextField(
-                    controller: locationController,
-                    decoration: InputDecoration(
-                      labelText: "Location",
-                      hintText: "Where is this happening?",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.location_on),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  // 🗓️ From Date Picker
-                  TextField(
-                    controller: fromDateController,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: "From Date",
-                      hintText: "Select start date",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.date_range),
-                    ),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                      );
-                      if (date != null) {
-                        setModalState(() {
-                          fromDateController.text =
-                              "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 15),
-                  // Start Time
-                  TextField(
-                    controller: startTimeController,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: "Start Time",
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      prefixIcon: const Icon(Icons.access_time),
-                    ),
-                    onTap: () async {
-                      final time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
-                      if (time != null) {
-                        startTimeController.text = time.format(context);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 15),
-
-                  // 🗓️ To Date Picker
-                  TextField(
-                    controller: toDateController,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: "To Date",
-                      hintText: "Select end date",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.date_range),
-                    ),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                      );
-                      if (date != null) {
-                        setModalState(() {
-                          toDateController.text =
-                              "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 15),
-
-                  // 💰 Price
-                  TextField(
-                    controller: priceController,
-                    decoration: InputDecoration(
-                      labelText: "Price",
-                      hintText: "Enter price (optional)",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.currency_rupee),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 🖼️ Image preview
-                  if (_webImage != null)
-                    Image.memory(_webImage!,
-                        height: 150, width: double.infinity, fit: BoxFit.cover)
-                  else if (_fileImage != null)
-                    Image.file(_fileImage!,
-                        height: 150, width: double.infinity, fit: BoxFit.cover),
-                  if (_webImage != null || _fileImage != null)
-                    const SizedBox(height: 10),
-
-                  // 📸 Pick image button
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      await pickImage();
-                      setModalState(
-                          () {}); // Update modal's state to show image
-                    },
-                    icon: const Icon(Icons.image, color: Colors.white),
-                    label: const Text("Pick Image",
-                        style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✅ Submit button
-                  ElevatedButton(
-                    onPressed: () {
-                      createPost(); // This will close the sheet and refresh posts
-                      // No need for setModalState here as the sheet will pop
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text("Create Post",
-                        style: TextStyle(fontSize: 18, color: Colors.white)),
+        return Center(
+          child: FractionallySizedBox(
+            widthFactor: 0.9,
+            heightFactor: 0.7,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Color(0xff000000),
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blueAccent.withOpacity(0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+                ),
+                child: StatefulBuilder(
+                  builder: (BuildContext context, StateSetter setModalState) {
+                    return SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 🔹 Header
+                          // 🌍 Travel Icon Header
+                          Container(
+                            padding: const EdgeInsets.only(top: 10, bottom: 15),
+                            child: Column(
+                              children: [
+                                // ✈️ Plane inside blue circle
+                                Container(
+                                  height: 70,
+                                  width: 70,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueAccent, // circle color
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.flight_takeoff,
+                                    color: Colors.white,
+                                    size: 35,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+
+                                // 🔹 Title text
+                                Text(
+                                  "Post a Tour",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueAccent.shade700,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          ),
+
+                          // 📝 Fields
+                          _buildInputField(
+                            controller: titleController,
+                            label: "Title *",
+                            icon: Icons.title,
+                          ),
+                          _buildInputField(
+                            controller: descController,
+                            label: "Description",
+                            icon: Icons.description,
+                          ),
+                          _buildInputField(
+                            controller: locationController,
+                            label: "Location",
+                            icon: Icons.location_on,
+                          ),
+                          _buildDateField(
+                            context,
+                            setModalState,
+                            controller: fromDateController,
+                            label: "From Date",
+                            icon: Icons.date_range,
+                          ),
+                          _buildTimeField(
+                            context,
+                            controller: startTimeController,
+                            label: "Start Time",
+                          ),
+                          _buildDateField(
+                            context,
+                            setModalState,
+                            controller: toDateController,
+                            label: "To Date",
+                            icon: Icons.date_range,
+                          ),
+                          _buildInputField(
+                            controller: priceController,
+                            label: "Price (optional)",
+                            icon: Icons.currency_rupee,
+                            keyboardType: TextInputType.number,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // 🖼️ Image preview
+                          if (_webImage != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.memory(
+                                _webImage!,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          else if (_fileImage != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(
+                                _fileImage!,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          const SizedBox(height: 10),
+
+                          // 📸 Pick Image
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              await pickImage();
+                              setModalState(() {});
+                            },
+                            icon: const Icon(Icons.image, color: Colors.white),
+                            label: const Text("Pick Image",
+                                style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              minimumSize: const Size(double.infinity, 45),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+
+                          // ✅ Submit
+                          ElevatedButton(
+                            onPressed: () => createPost(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xff5fc8ff),
+                              minimumSize: const Size(double.infinity, 45),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text(
+                              "Create Post",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
-          );
-        });
+          ),
+        );
       },
+    );
+  }
+
+  /// 🔹 Single-line text field with underline style
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.blueGrey.shade700),
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent, width: 1.3),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 🔹 Date picker with underline style
+  Widget _buildDateField(BuildContext context, StateSetter setModalState,
+      {required TextEditingController controller,
+      required String label,
+      required IconData icon}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.blueGrey.shade700),
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent, width: 1.3),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue, width: 2),
+          ),
+        ),
+        onTap: () async {
+          final date = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(2020),
+            lastDate: DateTime(2100),
+          );
+          if (date != null) {
+            setModalState(() {
+              controller.text =
+                  "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+            });
+          }
+        },
+      ),
+    );
+  }
+
+  /// 🔹 Time picker with underline style
+  Widget _buildTimeField(BuildContext context,
+      {required TextEditingController controller, required String label}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.blueGrey.shade700),
+          prefixIcon: const Icon(Icons.access_time, color: Colors.blueAccent),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent, width: 1.3),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue, width: 2),
+          ),
+        ),
+        onTap: () async {
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.now(),
+          );
+          if (time != null) controller.text = time.format(context);
+        },
+      ),
     );
   }
 
