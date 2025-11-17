@@ -6,15 +6,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:confetti/confetti.dart';
+
 import 'activity_details_page.dart';
 import 'post_details_page.dart';
-
 import 'search_page.dart';
 import 'posts_page.dart';
 import 'notifications_page.dart';
-import 'guides_list_page.dart';
-import 'influencers_list_page.dart';
 import 'kolkata_destinations.dart';
 import 'posts_feed.dart';
 import 'activity_feed.dart';
@@ -33,24 +30,20 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
   String? fullName;
   String? locationName;
   String? profileImageUrl;
 
-  late ConfettiController _confettiController;
   int _currentIndex = 0;
   late final List<String> _slideshowImages;
   late final List<String> _captions;
   late final Timer _timer;
 
-  // NEW: boosted items
   bool boostedLoading = true;
   String? boostedError;
-  List<Map<String, dynamic>> boostedItems =
-      []; // each item contains a 'type' key: 'post' or 'activity'
+  List<Map<String, dynamic>> boostedItems = [];
 
   @override
   void initState() {
@@ -66,11 +59,11 @@ class _HomePageState extends State<HomePage>
     ];
 
     _captions = [
-      "Find Peace by the Sea 🌊",
-      "Conquer the Peaks 🏔️",
-      "Breathe in the Mountains 🌄",
-      "Explore Victoria Memorial 🏛️",
-      "Discover Pareshnath Temple 🕉️",
+      "Find Peace by the Sea",
+      "Conquer the Peaks",
+      "Breathe in the Mountains",
+      "Explore Victoria Memorial",
+      "Discover Pareshnath Temple",
     ];
 
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
@@ -79,14 +72,10 @@ class _HomePageState extends State<HomePage>
             _currentIndex = (_currentIndex + 1) % _slideshowImages.length);
       }
     });
-
-    _confettiController =
-        ConfettiController(duration: const Duration(seconds: 1));
   }
 
   @override
   void dispose() {
-    _confettiController.dispose();
     _timer.cancel();
     super.dispose();
   }
@@ -98,54 +87,56 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _fetchUserName() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        setState(() => fullName = "Guest");
+        return;
+      }
+      final data = await supabase
+          .from('profiles')
+          .select('full_name, profile_image_url')
+          .eq('id', user.id)
+          .maybeSingle();
+      setState(() {
+        fullName = data?['full_name'] ?? "Guest";
+        profileImageUrl = data?['profile_image_url'];
+      });
+    } catch (_) {
       setState(() => fullName = "Guest");
-      return;
     }
-    final data = await supabase
-        .from('profiles')
-        .select('full_name, profile_image_url')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    setState(() {
-      fullName = data?['full_name'] ?? "Guest";
-      profileImageUrl = data?['profile_image_url'];
-    });
   }
 
   Future<void> _fetchLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() => locationName = "Location disabled");
-      return;
-    }
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.deniedForever) {
-      setState(() => locationName = "Permission denied");
-      return;
-    }
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => locationName = "Location disabled");
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => locationName = "Permission denied");
+        return;
+      }
 
-    final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    final placemarks =
-        await placemarkFromCoordinates(position.latitude, position.longitude);
-    final placemark = placemarks.first;
-    setState(() {
-      locationName =
-          "${placemark.locality ?? 'Unknown'}, ${placemark.country ?? ''}";
-    });
+      final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
+      final placemark = placemarks.first;
+      setState(() {
+        locationName =
+            "${placemark.locality ?? 'Unknown'}, ${placemark.country ?? ''}";
+      });
+    } catch (_) {
+      setState(() => locationName = null);
+    }
   }
 
-  void _showConfetti() => _confettiController.play();
-
-  // ---------------------------
-  // NEW: Fetch boosted posts & activities
-  // ---------------------------
   Future<void> _fetchBoostedItems() async {
     setState(() {
       boostedLoading = true;
@@ -155,7 +146,6 @@ class _HomePageState extends State<HomePage>
     try {
       final nowIso = DateTime.now().toUtc().toIso8601String();
 
-      // Fetch boosted posts where boost_end > now and is_boosted = true
       final boostedPostsResp = await supabase
           .from('posts')
           .select()
@@ -163,7 +153,6 @@ class _HomePageState extends State<HomePage>
           .gt('boost_end', nowIso)
           .order('boost_end', ascending: false);
 
-      // Fetch boosted activities where boost_end > now and is_boosted = true
       final boostedActsResp = await supabase
           .from('activities')
           .select()
@@ -171,14 +160,13 @@ class _HomePageState extends State<HomePage>
           .gt('boost_end', nowIso)
           .order('boost_end', ascending: false);
 
-      final List<Map<String, dynamic>> postsList = (boostedPostsResp is List)
+      final postsList = boostedPostsResp is List
           ? List<Map<String, dynamic>>.from(boostedPostsResp)
-          : [];
-      final List<Map<String, dynamic>> actsList = (boostedActsResp is List)
+          : <Map<String, dynamic>>[];
+      final actsList = boostedActsResp is List
           ? List<Map<String, dynamic>>.from(boostedActsResp)
-          : [];
+          : <Map<String, dynamic>>[];
 
-      // tag each record with its type
       final combined = <Map<String, dynamic>>[];
       for (var p in postsList) {
         final copy = Map<String, dynamic>.from(p);
@@ -191,7 +179,6 @@ class _HomePageState extends State<HomePage>
         combined.add(copy);
       }
 
-      // optional: sort by boost_end descending (most recently boosted first) or by boost_end remaining
       combined.sort((a, b) {
         final aEnd = DateTime.tryParse(a['boost_end']?.toString() ?? '') ??
             DateTime.fromMillisecondsSinceEpoch(0);
@@ -214,652 +201,560 @@ class _HomePageState extends State<HomePage>
   }
 
   void _openItem(Map<String, dynamic> item) {
-    // simple navigation: open posts_page for posts, activity_feed for activities
     if (item['__type'] == 'post') {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const PostsPage()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => PostDetailsPage(post: item)));
     } else {
       Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const ActivitiesFeed()));
+          context,
+          MaterialPageRoute(
+              builder: (_) => ActivityDetailsPage(activity: item)));
     }
   }
 
-  Widget _buildBoostedSection() {
-    if (boostedLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-        child: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 12),
-            Text('Loading boosted...')
-          ],
-        ),
-      );
+  // Helper: format remaining time text
+  String _formatRemaining(String boostEnd) {
+    try {
+      final end = DateTime.parse(boostEnd).toLocal();
+      final diff = end.difference(DateTime.now());
+      if (diff.isNegative) return 'Expired';
+      if (diff.inDays >= 1) return '${diff.inDays}d left';
+      if (diff.inHours >= 1) return '${diff.inHours}h left';
+      return '${diff.inMinutes}m left';
+    } catch (_) {
+      return '';
     }
+  }
 
-    if (boostedError != null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-        child: Text(
-          boostedError!,
-          style: const TextStyle(color: Colors.redAccent),
-        ),
-      );
+  // Category actions map - keeps your original navigation intent
+  void _onCategoryTap(String key) {
+    switch (key) {
+      case 'Tours':
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const PostsPage()));
+        break;
+      case 'Activities':
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const ActivitiesFeed()));
+        break;
+      case 'Bookings':
+        // If you have a bookings page, navigate to it. For now open search.
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const SearchPage()));
+        break;
+      case 'Guides':
+        // If you keep GuidesList, import/navigation apply
+        // Navigator.push(context, MaterialPageRoute(builder: (_) => const GuidesList()));
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const SearchPage()));
+        break;
     }
-
-    if (boostedItems.isEmpty) {
-      // no boosted = no section
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Column(
-        children: [
-          // Header Row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const Icon(Icons.local_fire_department,
-                    color: Color(0xFFFF6B00)),
-                const SizedBox(width: 8),
-                Text(
-                  '🔥 Boosted Experiences',
-                  style: GoogleFonts.poppins(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: _fetchBoostedItems,
-                  child: const Text('See All'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Slider
-          SizedBox(
-            height: 160,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: boostedItems.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final it = boostedItems[index];
-                final title =
-                    (it['title'] ?? it['name'] ?? 'Untitled').toString();
-                final imageUrl = (it['image_url'] ?? '').toString();
-                final boostEnd = (it['boost_end'] ?? '').toString();
-
-                final remaining = (() {
-                  try {
-                    final end = DateTime.parse(boostEnd).toLocal();
-                    final diff = end.difference(DateTime.now());
-                    if (diff.isNegative) return 'Expired';
-                    if (diff.inDays >= 1) return '${diff.inDays}d left';
-                    if (diff.inHours >= 1) return '${diff.inHours}h left';
-                    return '${diff.inMinutes}m left';
-                  } catch (_) {
-                    return '';
-                  }
-                })();
-
-                return GestureDetector(
-                  onTap: () {
-                    if (it['__type'] == 'post') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PostDetailsPage(post: it),
-                        ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ActivityDetailsPage(activity: it),
-                        ),
-                      );
-                    }
-                  },
-                  child: Container(
-                    width: 260,
-                    margin: const EdgeInsets.only(left: 4, right: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      image: imageUrl.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(imageUrl), fit: BoxFit.cover)
-                          : null,
-                      color: Colors.grey.shade300,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.12),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                    ),
-                    child: Stack(
-                      children: [
-                        // Dark overlay
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.black.withOpacity(0.45),
-                                Colors.black.withOpacity(0.18),
-                              ],
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                            ),
-                          ),
-                        ),
-
-                        // Content
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Align(
-                                alignment: Alignment.topRight,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFF6B00),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text(
-                                    'BOOSTED',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12),
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.access_time,
-                                      size: 14, color: Colors.white70),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    remaining,
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 12),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white24,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      it['__type'] == 'post'
-                                          ? 'Tour'
-                                          : 'Activity',
-                                      style: const TextStyle(
-                                          color: Colors.white70, fontSize: 12),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 18),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xfff9f9fc),
-      body: Stack(
-        children: [
-          // Soft pastel background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xfffefefe), Color(0xfff7f9ff)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-          ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirectionality: BlastDirectionality.explosive,
-            colors: [
-              Colors.pinkAccent.shade100,
-              Colors.lightBlueAccent.shade100
-            ],
-            gravity: 0.2,
-          ),
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-
-                // NEW: Boosted section inserted here
-                _buildBoostedSection(),
-
-                _buildSectionHeader("Places in Kolkata"),
-                const SizedBox(height: 10),
-                const KolkataDestinations(),
-                const SizedBox(height: 35),
-                _buildSectionHeader("Activities", showButton: true),
-                const SizedBox(height: 10),
-                const SizedBox(height: 180, child: ActivitiesFeed()),
-                _buildSectionHeader("Meet Our Guides"),
-                const SizedBox(height: 10),
-                const SizedBox(height: 180, child: GuidesList()),
-                const SizedBox(height: 30),
-                _buildSectionHeader("Featured Tours", showButton: true),
-                const SizedBox(height: 10),
-                const SizedBox(height: 150, child: PostsFeed()),
-                const SizedBox(height: 30),
-                _buildSectionHeader("Top Influencers"),
-                const SizedBox(height: 10),
-                const SizedBox(height: 180, child: InfluencersList()),
-                const SizedBox(height: 30),
-                const SizedBox(height: 30),
-                const SizedBox(height: 30),
-                const SizedBox(height: 30),
-                _buildSectionHeader("Sponsored"),
-                const SizedBox(height: 10),
-                const AdsFeed(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- Existing helper widgets kept unchanged ---
-  // --- Header and other pieces follow exactly as before ---
-
-  Widget _buildHeader() {
-    return Stack(
-      children: [
-        // Background slideshow image
-        AnimatedSwitcher(
-          duration: const Duration(seconds: 1),
-          child: Container(
-            key: ValueKey<int>(_currentIndex),
-            height: 460, // 🔥 increased height to fit category icons
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(_slideshowImages[_currentIndex]),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.8),
-                    Colors.white.withOpacity(0.4),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // Foreground content (profile, caption, search bar, icons)
-        Positioned(
-          top: 70,
-          left: 20,
-          right: 20,
+      backgroundColor: const Color(0xFFF3F6FB),
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Greeting and notification row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundImage: profileImageUrl != null
-                            ? NetworkImage(profileImageUrl!)
-                            : const AssetImage('assets/default_avatar.png')
-                                as ImageProvider,
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Good Morning, ${fullName ?? "Guest"} 👋",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (locationName != null)
-                            Text(
-                              locationName!,
-                              style: GoogleFonts.roboto(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded,
-                        color: Colors.black87, size: 58),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const NotificationsPage()),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 40),
-
-              // Caption with gradient
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 800),
-                child: ShaderMask(
-                  key: ValueKey(_captions[_currentIndex]),
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xffa2c2e2), Color(0xfff8cdda)],
-                  ).createShader(bounds),
-                  child: Text(
-                    _captions[_currentIndex],
-                    style: GoogleFonts.poppins(
-                      color: Colors.black,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // White glass search bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              // Rounded header card (matches uploaded design)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
                   child: Container(
-                    height: 50,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(30),
+                      color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.5),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                    child: Row(
+                    child: Column(
                       children: [
-                        const Icon(Icons.search, color: Colors.grey),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            readOnly: true,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const GlobalSearchLivePage()),
-                            ),
-                            decoration: InputDecoration(
-                              hintText: "Where to go?",
-                              border: InputBorder.none,
-                              hintStyle: GoogleFonts.roboto(
-                                color: Colors.grey.shade600,
+                        // Hero image with rounded top corners
+                        SizedBox(
+                          height: 280,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 700),
+                                child: Image.asset(
+                                  _slideshowImages[_currentIndex],
+                                  key: ValueKey<int>(_currentIndex),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              // dark gradient to improve text contrast
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.black.withOpacity(0.28),
+                                      Colors.transparent,
+                                      Colors.transparent,
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                ),
+                              ),
+                              // Top row: small circular avatar (left) and notif icon (right)
+                              Positioned(
+                                left: 18,
+                                top: 14,
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundImage: profileImageUrl != null
+                                          ? NetworkImage(profileImageUrl!)
+                                          : const AssetImage(
+                                                  'assets/default_avatar.png')
+                                              as ImageProvider,
+                                      backgroundColor: Colors.grey[200],
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // small location line (optional)
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Good Morning, ${fullName ?? 'Guest'} 👋",
+                                          style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        if (locationName != null)
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.location_on,
+                                                  color: Colors.white70,
+                                                  size: 12),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                locationName!,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 12,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Positioned(
+                                right: 14,
+                                top: 8,
+                                child: Material(
+                                  color: Colors.white,
+                                  shape: const CircleBorder(),
+                                  elevation: 6,
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const NotificationsPage())),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Icon(Icons.notifications,
+                                          color: Color(0xffff0037)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Centered large title
+                              Positioned.fill(
+                                top: 40,
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 28.0),
+                                    child: Text(
+                                      _captions[_currentIndex],
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.cinzel(
+                                        color: Colors.white,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.02,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Floating white search bar overlapping image bottom
+                        Transform.translate(
+                          offset: const Offset(0, -28),
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Material(
+                              borderRadius: BorderRadius.circular(28),
+                              elevation: 8,
+                              shadowColor: Colors.black,
+                              child: InkWell(
+                                onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const GlobalSearchLivePage())),
+                                borderRadius: BorderRadius.circular(28),
+                                child: Container(
+                                  height: 54,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xffffffff),
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.search,
+                                          color: Color(0xff8b96a8)),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Where to go, what to do?',
+                                          style: GoogleFonts.inter(
+                                              color: const Color(0xff9aa6b8),
+                                              fontSize: 15),
+                                        ),
+                                      ),
+                                      //const Icon(Icons.mic,
+                                      // color: Color(0xffc6d0dd)),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
+
+                        // Category row (circular blue-outlined chips)
+                        Transform.translate(
+                          offset: const Offset(0, -18),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20.0, vertical: 6),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildCategoryChip(
+                                    icon: Icons.flight_takeoff_rounded,
+                                    label: 'Tours'),
+                                _buildCategoryChip(
+                                    icon: Icons.directions_run_rounded,
+                                    label: 'Activities'),
+                                _buildCategoryChip(
+                                    icon: Icons.book_online_rounded,
+                                    label: 'Bookings'),
+                                _buildCategoryChip(
+                                    icon: Icons.search_rounded,
+                                    label: 'Guides'),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // small bottom spacing inside card
+                        const SizedBox(height: 14),
                       ],
                     ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 25),
+              // Main page content (below rounded header)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Boosted experiences header + See All
+                    if (boostedLoading)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(children: const [
+                          CircularProgressIndicator(),
+                          SizedBox(width: 12),
+                          Text('Loading boosted...')
+                        ]),
+                      )
+                    else if (boostedError != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(boostedError!,
+                            style: const TextStyle(color: Colors.redAccent)),
+                      )
+                    else if (boostedItems.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.local_fire_department,
+                              color: Color(0xFFFF6B00)),
+                          const SizedBox(width: 8),
+                          Text('Boosted Experiences',
+                              style: GoogleFonts.inter(
+                                  fontSize: 18, fontWeight: FontWeight.w700)),
+                          const Spacer(),
+                          TextButton(
+                              onPressed: _fetchBoostedItems,
+                              child: Text('See All',
+                                  style: GoogleFonts.inter(
+                                      color: const Color(0xff4b8bff)))),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 160,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: boostedItems.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final it = boostedItems[index];
+                            final title =
+                                (it['title'] ?? it['name'] ?? 'Untitled')
+                                    .toString();
+                            final imageUrl = (it['image_url'] ?? '').toString();
+                            final boostEnd = (it['boost_end'] ?? '').toString();
+                            return GestureDetector(
+                              onTap: () => _openItem(it),
+                              child: Container(
+                                width: 260,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black.withOpacity(0.06),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 8))
+                                  ],
+                                  image: imageUrl.isNotEmpty
+                                      ? DecorationImage(
+                                          image: NetworkImage(imageUrl),
+                                          fit: BoxFit.cover)
+                                      : null,
+                                ),
+                                child: Stack(
+                                  children: [
+                                    // dark overlay for text legibility
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(14),
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.black.withOpacity(0.42),
+                                            Colors.transparent
+                                          ],
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.topRight,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFFF6B00),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                              child: const Text('BOOSTED',
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Text(title,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.inter(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w700)),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.access_time,
+                                                  size: 12,
+                                                  color: Colors.white70),
+                                              const SizedBox(width: 6),
+                                              Text(_formatRemaining(boostEnd),
+                                                  style: GoogleFonts.inter(
+                                                      fontSize: 12,
+                                                      color: Colors.white70)),
+                                              const SizedBox(width: 10),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                                decoration: BoxDecoration(
+                                                    color: Colors.white24,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6)),
+                                                child: Text(
+                                                    it['__type'] == 'post'
+                                                        ? 'Tour'
+                                                        : 'Activity',
+                                                    style: GoogleFonts.inter(
+                                                        fontSize: 12,
+                                                        color: Colors.white70)),
+                                              )
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ] else
+                      const SizedBox.shrink(),
 
-              // 🔥 Category icons now appear INSIDE the header image
-              _buildHeaderCategories(),
+                    // Places in Kolkata
+                    _sectionTitle('Places in Kolkata'),
+                    const SizedBox(height: 10),
+                    const KolkataDestinations(),
+                    const SizedBox(height: 20),
+
+                    // Activities
+                    _sectionTitle('Activities', showButton: true),
+                    const SizedBox(height: 10),
+                    const SizedBox(height: 180, child: ActivitiesFeed()),
+                    const SizedBox(height: 18),
+
+                    // Featured Tours
+                    _sectionTitle('Featured Tours', showButton: true),
+                    const SizedBox(height: 10),
+                    const SizedBox(height: 150, child: PostsFeed()),
+                    const SizedBox(height: 20),
+
+                    // Sponsored (ads)
+                    _sectionTitle('Sponsored'),
+                    const SizedBox(height: 10),
+                    const AdsFeed(),
+                    const SizedBox(height: 28),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildHeaderCategories() {
-    final categories = [
-      {"icon": Icons.flight_takeoff_rounded, "title": "Tours"},
-      {"icon": Icons.hotel_rounded, "title": "Activities"},
-      {"icon": Icons.beach_access_rounded, "title": "Bookings"},
-      {"icon": Icons.local_offer_rounded, "title": "Influencers"},
-    ];
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: categories.map((c) {
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.blue.withOpacity(0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(c["icon"] as IconData,
-                          color: const Color(0xff2356ff), size: 26),
-                      const SizedBox(height: 8),
-                      Text(
-                        c["title"] as String,
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xff006eff),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, {bool showButton = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // Small helper to build the round outlined category chips from screenshot
+  Widget _buildCategoryChip({
+    required IconData icon,
+    required String label,
+  }) {
+    return SizedBox(
+      width: 80, // fixed width so all fit in one line
+      child: Column(
         children: [
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          Container(
+            height: 54,
+            width: 54,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xff3b82f6).withOpacity(0.18),
+                width: 2.4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(icon, color: const Color(0xff2b6df6), size: 22),
             ),
           ),
-          if (showButton)
-            TextButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SearchPage()),
-              ),
-              label: const Text("See All"),
-              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-              style:
-                  TextButton.styleFrom(foregroundColor: Colors.lightBlueAccent),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xff466079),
+              fontWeight: FontWeight.w600,
             ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
   }
 
-  Widget _adCard(String imagePath) {
-    return GestureDetector(
-      onTap: () {
-        // Example: Navigate to a promotion page or open URL
-        // Navigator.push(context, MaterialPageRoute(builder: (_) => const PromoPage()));
-      },
-      child: Container(
-        width: 250,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          image: DecorationImage(
-            image: AssetImage(imagePath),
-            fit: BoxFit.cover,
+  // Section title helper matching screenshot style
+  Widget _sectionTitle(String title, {bool showButton = false}) {
+    return Row(
+      children: [
+        Text(title,
+            style:
+                GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700)),
+        const Spacer(),
+        if (showButton)
+          TextButton(
+            onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const SearchPage())),
+            child: Text('See All',
+                style: GoogleFonts.inter(color: const Color(0xff4b8bff))),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopDestinations() {
-    final destinations = [
-      {"image": "assets/paris.jpg", "title": "Paris"},
-      {"image": "assets/dubai.jpg", "title": "Dubai"},
-      {"image": "assets/newyork.jpg", "title": "New York"},
-      {"image": "assets/rio.jpg", "title": "Rio de Janeiro"},
-      {"image": "assets/bali.jpg", "title": "Bali"},
-    ];
-
-    return SizedBox(
-      height: 160,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(left: 20),
-        itemCount: destinations.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 15),
-        itemBuilder: (context, i) {
-          final d = destinations[i];
-          return GestureDetector(
-            onTap: () {
-              switch (d["title"]) {
-                case "Paris":
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const ParisPage()));
-                  break;
-                case "Dubai":
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const DubaiPage()));
-                  break;
-                case "New York":
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const NewYorkPage()));
-                  break;
-                case "Rio de Janeiro":
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const RioPage()));
-                  break;
-                case "Bali":
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const BaliPage()));
-                  break;
-              }
-            },
-            child: Container(
-              width: 130,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                image: DecorationImage(
-                  image: AssetImage(d["image"]!),
-                  fit: BoxFit.cover,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.15),
-                    blurRadius: 6,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              alignment: Alignment.bottomLeft,
-              padding: const EdgeInsets.all(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  d["title"]!,
-                  style: const TextStyle(
-                      color: Colors.black87, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+      ],
     );
   }
 }
