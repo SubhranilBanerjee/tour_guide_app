@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'splash_slideshow_page.dart';
-
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 //import 'chat_page.dart';
 import 'auth_gate.dart';
 import 'home_page.dart';
@@ -28,10 +28,18 @@ class TourGuideApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(),
-      home: const SplashSlideshowPage(),
+    return ScreenUtilInit(
+      designSize: const Size(390, 844), // your base mobile design size
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData.light(),
+          home: child,
+        );
+      },
+      child: const SplashSlideshowPage(),
     );
   }
 }

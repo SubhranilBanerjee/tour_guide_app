@@ -89,7 +89,7 @@ class _GuidesListState extends State<GuidesList> {
                       fullName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Color(0xff000000),
                         fontSize: 14,
                       ),
                     ),

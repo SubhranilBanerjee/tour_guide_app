@@ -1,5 +1,6 @@
 // boost_post_page.dart
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BoostPostPage extends StatefulWidget {
@@ -378,6 +379,8 @@ class _BoostPostPageState extends State<BoostPostPage> {
                       // Posts section
                       const Text('Your Posts',
                           style: TextStyle(
+                              //fontFamily: GoogleFonts.meaCulpa().fontFamily,
+                              fontSize: 25,
                               color: Color(0xFFFFD700),
                               fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
@@ -392,6 +395,7 @@ class _BoostPostPageState extends State<BoostPostPage> {
                       const SizedBox(height: 18),
                       const Text('Your Activities',
                           style: TextStyle(
+                              fontSize: 25,
                               color: Color(0xFFFFD700),
                               fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),

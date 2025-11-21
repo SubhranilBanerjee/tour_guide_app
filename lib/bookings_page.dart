@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'payment_page.dart';
 import 'ticket_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class BookingsPage extends StatefulWidget {
   const BookingsPage({super.key});
@@ -328,8 +329,14 @@ class _BookingsPageState extends State<BookingsPage> {
         backgroundColor: const Color(0xFFF8FBFF),
         elevation: 0,
         centerTitle: true,
-        title: const Text('Bookings',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: Text(
+          'Bookings',
+          style: GoogleFonts.waterfall(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+            fontSize: 62,
+          ),
+        ),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -337,7 +344,7 @@ class _BookingsPageState extends State<BookingsPage> {
               onRefresh: loadBookings,
               child: ListView(
                 children: [
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: ['Pending', 'Paid', 'All']

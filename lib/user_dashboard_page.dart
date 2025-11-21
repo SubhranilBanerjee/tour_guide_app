@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'boost_post_page.dart';
+import 'user_analytics_page.dart';
 
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
@@ -491,6 +492,40 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                                     builder: (context) =>
                                         BoostPostPage(userId: user.id),
                                   ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+
+// 📊 Analytics Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blueAccent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              icon: const Icon(Icons.analytics,
+                                  color: Colors.white),
+                              label: const Text(
+                                "View Analytics",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const UserAnalyticsPage()),
                                 );
                               },
                             ),

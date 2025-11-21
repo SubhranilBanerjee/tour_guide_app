@@ -18,8 +18,7 @@ class _ActivitiesFeedState extends State<ActivitiesFeed> {
 
   // Define a fresh, attractive color palette
   static const Color primaryBlue = Color(0xFF1E88E5);
-  static const Color accentTeal =
-      Color(0xFF00BFA5); // A brighter, more attractive teal
+  static const Color accentTeal = Color(0xFF00BFA5);
   static const Color darkText = Color(0xFF263238);
   static const Color lightText = Color(0xFF78909C);
   static const Color cardBackground = Colors.white;

@@ -2,8 +2,10 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tour_guide/activity_feed.dart';
 import 'activity_details_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -740,16 +742,15 @@ class _SearchPageState extends State<SearchPage> {
     final title = (activity['title'] ?? 'Untitled Activity').toString();
     final imageUrl = activity['image_url']?.toString();
 
-    // ✅ Extract profile info
+    // Profile info
     final profile = activity['profiles'] ?? {};
     final fullName = (profile['full_name'] ?? 'Unknown User').toString();
     final avatarUrl = profile['profile_image_url']?.toString();
-    final profileId = profile['id']; // 'id' from profiles table
 
-    // ✅ Logged-in user ID
+    // Logged-in user
     final currentUserId = supabase.auth.currentUser?.id;
 
-    // ✅ Category label
+    // Category label formatting
     String rawCategory = (activity['category'] ?? '').toString();
     String categoryLabel = rawCategory.isEmpty
         ? 'Misc'
@@ -760,218 +761,242 @@ class _SearchPageState extends State<SearchPage> {
           );
 
     final chipColor = _categoryColor(categoryLabel);
-    final futureIsFav = isFavourite(activityId);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailsPage(
+              activity: activity,
+            ),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ✅ Header — profile info + optional delete button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  backgroundColor: Colors.grey.shade300,
-                  child: avatarUrl == null || avatarUrl.isEmpty
-                      ? const Icon(Icons.person, size: 18, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 10),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                        ? NetworkImage(avatarUrl)
+                        : null,
+                    backgroundColor: Colors.grey.shade300,
+                    child: (avatarUrl == null || avatarUrl.isEmpty)
+                        ? const Icon(Icons.person,
+                            size: 18, color: Colors.white)
+                        : null,
+                  ),
+                  const SizedBox(width: 10),
 
-                // ✅ Clickable username
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      final userId = activity['user_id'];
-                      if (userId != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProfilePage(userId: userId),
-                          ),
-                        );
-                      }
-                    },
-                    child: Text(
-                      fullName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blueAccent,
+                  // Username → tappable to profile page
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        final userId = activity['user_id'];
+                        if (userId != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfilePage(userId: userId),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        fullName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blueAccent,
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // ✅ Delete button only for owner
-                if (activity['user_id'] == currentUserId)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        color: Colors.redAccent, size: 22),
-                    onPressed: () => _confirmDelete(activityId),
-                  ),
-              ],
+                  // Delete button
+                  if (activity['user_id'] == currentUserId)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                        size: 22,
+                      ),
+                      onPressed: () => _confirmDelete(activityId),
+                    ),
+                ],
+              ),
             ),
-          ),
 
-          // ✅ Post Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(0),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    height: 170,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+            // Post Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(0),
+              child: (imageUrl != null && imageUrl.isNotEmpty)
+                  ? Image.network(
+                      imageUrl,
+                      height: 170,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 170,
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(Icons.broken_image,
+                              size: 40, color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  : Container(
                       height: 170,
                       color: Colors.grey.shade200,
                       child: const Center(
-                        child: Icon(Icons.broken_image,
-                            size: 40, color: Colors.grey),
+                        child: Icon(Icons.image, size: 40, color: Colors.grey),
                       ),
                     ),
-                  )
-                : Container(
-                    height: 170,
-                    color: Colors.grey.shade200,
-                    child: const Center(
-                      child: Icon(Icons.image, size: 40, color: Colors.grey),
-                    ),
-                  ),
-          ),
+            ),
 
-          // ✅ Content
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text(
-                  (activity['description'] ?? 'No description available')
-                      .toString(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xbf868686),
-                  ),
-                ),
-                Text(
-                  (activity['location'] ?? 'No specific location').toString(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xffff0000),
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Category Chip
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: chipColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    categoryLabel,
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
 
-                // Rating + Favourite
-                Row(
-                  children: [
-                    FutureBuilder<double>(
-                      future: getActivityRating(activityId),
-                      builder: (context, snapshot) {
-                        final avg = (snapshot.data ?? 0.0);
-                        return Row(
-                          children: [
-                            _buildStarRow(avg),
-                            const SizedBox(width: 8),
-                            Text(
-                              "${avg.toStringAsFixed(1)}/5",
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                  // Description
+                  Text(
+                    (activity['description'] ?? 'No description available')
+                        .toString(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xbf868686),
+                    ),
+                  ),
+
+                  // Location
+                  Text(
+                    (activity['location'] ?? 'No specific location').toString(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xffff0000),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Category chip
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: chipColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      categoryLabel,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Rating + Favourite
+                  Row(
+                    children: [
+                      FutureBuilder<double>(
+                        future: getActivityRating(activityId),
+                        builder: (context, snapshot) {
+                          final avg = snapshot.data ?? 0.0;
+                          return Row(
+                            children: [
+                              _buildStarRow(avg),
+                              const SizedBox(width: 8),
+                              Text(
+                                "${avg.toStringAsFixed(1)}/5",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const Spacer(),
-                    FutureBuilder<bool>(
-                      future: futureIsFav,
-                      builder: (context, snapFav) {
-                        final isFav = snapFav.data ?? false;
-                        if (snapFav.connectionState ==
-                            ConnectionState.waiting) {
-                          return const SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            ],
                           );
-                        }
-                        return IconButton(
-                          iconSize: 18,
-                          padding: EdgeInsets.zero,
-                          icon: Icon(
-                            isFav ? Icons.favorite : Icons.favorite_border,
-                            color: isFav ? Colors.redAccent : Colors.black54,
-                          ),
-                          onPressed: () async {
-                            await toggleFavourite(activityId);
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
+                        },
+                      ),
+                      const Spacer(),
+                      FutureBuilder<bool>(
+                        future: isFavourite(activityId),
+                        builder: (context, snapFav) {
+                          final isFav = snapFav.data ?? false;
+
+                          if (snapFav.connectionState ==
+                              ConnectionState.waiting) {
+                            return const SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            );
+                          }
+
+                          return IconButton(
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            icon: Icon(
+                              isFav ? Icons.favorite : Icons.favorite_border,
+                              color: isFav ? Colors.redAccent : Colors.black54,
+                            ),
+                            onPressed: () async {
+                              await toggleFavourite(activityId);
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1017,7 +1042,6 @@ class _SearchPageState extends State<SearchPage> {
     const String aestheticFont = 'Montserrat';
     final double topPadding = MediaQuery.of(context).padding.top;
 
-    // The final categories list
     final List<String> categories = [
       'All',
       'adventure',
@@ -1030,7 +1054,7 @@ class _SearchPageState extends State<SearchPage> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xc36bb2f4),
+      backgroundColor: const Color(0xFFE9F2FF), // Softer background
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -1042,118 +1066,131 @@ class _SearchPageState extends State<SearchPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Small, Aesthetic Heading
+          // 🌟 HEADER — Title + Count Badge
           Padding(
-            padding: EdgeInsets.fromLTRB(25, topPadding + 20, 25, 15),
-            child: const Text(
-              "Activities",
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-                letterSpacing: 0.8,
-                fontFamily: aestheticFont,
-              ),
-            ),
-          ),
-
-          // 2. Category Filter Buttons Section 🏷️
-          SizedBox(
-            height: 45,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: categories.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                final categoryName = categories[index];
-                final displayCategory = categoryName
-                    .split(' ')
-                    .map((word) => word[0].toUpperCase() + word.substring(1))
-                    .join(' ');
-
-                final isSelected = categoryName == selectedCategory;
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 10.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // This is where the filter action happens
-                      setState(() {
-                        selectedCategory = categoryName;
-                        _filterActivities();
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isSelected ? const Color(0xFF1E88E5) : Colors.white,
-                      foregroundColor:
-                          isSelected ? Colors.white : Colors.black87,
-                      elevation: isSelected ? 4 : 0,
-                      shadowColor: isSelected
-                          ? const Color(0xFF1E88E5).withOpacity(0.5)
-                          : Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        side: BorderSide(
-                          color: isSelected
-                              ? Colors.transparent
-                              : Colors.grey.shade300,
-                          width: 1,
+            padding: EdgeInsets.fromLTRB(25, topPadding + 20, 25, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Explore Activities",
+                        style: TextStyle(
+                          fontSize: 45,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                          letterSpacing: 0.8,
+                          fontFamily: GoogleFonts.waterfall().fontFamily,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
-                    ),
-                    child: Text(
-                      displayCategory,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              thickness: 1.5,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Text(
+                              "❀",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: GoogleFonts.waterfall().fontFamily,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              thickness: 1.5,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
+                      SizedBox(height: 6),
+                      Text(
+                        "Discover what’s happening around you",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87.withOpacity(0.7),
+                          letterSpacing: 0.6,
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(width: 10),
+
+                // 🔵 Activity Count Badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "${filteredActivities.length}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blueAccent,
                     ),
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // 3. Search Bar Section 🔍
+          // 🔍 Floating Search Bar With Shadow
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              controller: searchController,
-              onChanged: (value) => _filterActivities(),
-              style: const TextStyle(fontSize: 16),
-              decoration: InputDecoration(
-                hintText: "Search activities...",
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF1E88E5)),
-                suffixIcon: searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          searchController.clear();
-                          _filterActivities();
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF1E88E5), width: 1.5),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.07),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: searchController,
+                onChanged: (value) => _filterActivities(),
+                style: const TextStyle(fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: "Search activities...",
+                  hintStyle: TextStyle(color: Colors.grey.shade500),
+                  prefixIcon:
+                      const Icon(Icons.search, color: Color(0xFF1E88E5)),
+                  suffixIcon: searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            searchController.clear();
+                            _filterActivities();
+                          })
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 ),
               ),
             ),
@@ -1161,80 +1198,87 @@ class _SearchPageState extends State<SearchPage> {
 
           const SizedBox(height: 15),
 
-          // 4. Activities List
+          // 📜 ACTIVITIES LIST — Smooth Scroll
           Expanded(
-            // ... (Rest of your list view logic remains here)
             child: isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF1E88E5)))
                 : RefreshIndicator(
                     onRefresh: loadActivities,
-                    color: const Color(0xff003cff),
-                    child: filteredActivities.isEmpty
-                        ? Center(
-                            child: Container(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              padding: const EdgeInsets.all(25),
-                              decoration: BoxDecoration(
-                                color: Color(0xca0071f4),
-                                borderRadius: BorderRadius.circular(15),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.1),
-                                    spreadRadius: 2,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.sentiment_dissatisfied,
-                                      size: 40, color: Colors.grey),
-                                  SizedBox(height: 10),
-                                  Text(
-                                    "No activities found matching your criteria.",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
+                    color: const Color(0xFF1E88E5),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: filteredActivities.isEmpty
+                          ? Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 30),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.sentiment_dissatisfied,
+                                        size: 45, color: Colors.grey.shade500),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      "No activities match your search.",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
                                         fontSize: 18,
                                         color: Colors.black87,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                ],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: filteredActivities.length,
+                              itemBuilder: (context, index) => AnimatedOpacity(
+                                opacity: 1,
+                                duration: const Duration(milliseconds: 500),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 18),
+                                  child: _buildActivityCard(
+                                      filteredActivities[index]),
+                                ),
                               ),
                             ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            itemCount: filteredActivities.length,
-                            itemBuilder: (context, index) {
-                              final activity = filteredActivities[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 15),
-                                child: _buildActivityCard(activity),
-                              );
-                            },
-                          ),
+                    ),
                   ),
           ),
         ],
       ),
 
-      // ➕ Floating Action Button (No change)
+      // ➕ Floating Action Button
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateActivitySheet,
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded, size: 28),
         label: const Text(
           "Create New",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
         ),
-        icon: const Icon(Icons.add_rounded, size: 28),
-        backgroundColor: const Color(0xFF1E88E5),
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 6,
       ),
     );
   }

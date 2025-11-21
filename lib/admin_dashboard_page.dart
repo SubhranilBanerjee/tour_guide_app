@@ -39,6 +39,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8FF),
+
       appBar: AppBar(
         backgroundColor: const Color(0xFF1565C0),
         title: Text(
@@ -54,27 +55,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
         shadowColor: Colors.blueAccent.withOpacity(0.3),
       ),
 
-      // 📄 Main Body
+      // ************* MAIN BODY *************
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         transitionBuilder: (child, animation) =>
             FadeTransition(opacity: animation, child: child),
         child: Container(
           key: ValueKey<int>(selectedIndex),
-          margin: const EdgeInsets.all(16),
+
+          // FULL SCREEN WHITE CARD
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(20),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.blueAccent.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 5),
+                color: Colors.blueAccent.withOpacity(0.12),
+                blurRadius: 25,
+                offset: const Offset(0, -4),
               ),
             ],
           ),
-          padding: const EdgeInsets.all(20),
-          child: pages[selectedIndex],
+
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: pages[selectedIndex],
+            ),
+          ),
         ),
       ),
 
@@ -113,10 +123,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 icon: Icon(Icons.bar_chart_outlined),
                 label: "Analytics",
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings_outlined),
-                label: "Settings",
-              ),
+              //BottomNavigationBarItem(
+              //icon: Icon(Icons.settings_outlined),
+              //label: "Settings",
+              //),
             ],
           ),
         ),

@@ -516,12 +516,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     else if (boostedItems.isNotEmpty) ...[
                       Row(
                         children: [
-                          const Icon(Icons.local_fire_department,
-                              color: Color(0xFFFF6B00)),
                           const SizedBox(width: 8),
-                          Text('Boosted Experiences',
-                              style: GoogleFonts.inter(
-                                  fontSize: 18, fontWeight: FontWeight.w700)),
+                          Text('Top Picks',
+                              style: GoogleFonts.waterfall(
+                                  fontSize: 58, fontWeight: FontWeight.w700)),
                           const Spacer(),
                           TextButton(
                               onPressed: _fetchBoostedItems,
@@ -709,7 +707,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               color: Colors.white,
               shape: BoxShape.circle,
               border: Border.all(
-                color: const Color(0xff3b82f6).withOpacity(0.18),
+                color: const Color(0xff0062ff),
                 width: 2.4,
               ),
               boxShadow: [
@@ -744,8 +742,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Row(
       children: [
         Text(title,
-            style:
-                GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700)),
+            style: GoogleFonts.waterfall(
+                fontSize: 58, fontWeight: FontWeight.w700)),
         const Spacer(),
         if (showButton)
           TextButton(

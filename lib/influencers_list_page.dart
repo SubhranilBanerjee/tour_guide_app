@@ -89,7 +89,7 @@ class _InfluencersListState extends State<InfluencersList> {
                       fullName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Color(0xff0e0e0e),
                         fontSize: 14,
                       ),
                     ),

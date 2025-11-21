@@ -69,6 +69,52 @@ class _ProfilePageState extends State<ProfilePage> {
         .from('activities')
         .select('*')
         .eq('user_id', profileUserId);
+    // --- BOOKING RANKING FOR POSTS & ACTIVITIES ---
+
+//// --- POST BOOKINGS COUNT ---
+    final postBookingCounts = await supabase
+        .from('bookings')
+        .select('post_id, posts(id, user_id)')
+        .not('post_id', 'is', null);
+
+    Map<String, int> postCounts = {};
+    for (final row in postBookingCounts) {
+      final post = row['posts'];
+      if (post == null) continue;
+
+      final ownerId = post['user_id'];
+      postCounts[ownerId] = (postCounts[ownerId] ?? 0) + 1;
+    }
+
+// --- ACTIVITY BOOKINGS COUNT ---
+    final activityBookingCounts = await supabase
+        .from('bookings')
+        .select('activity_id, activities(id, user_id)')
+        .not('activity_id', 'is', null);
+
+    Map<String, int> activityCounts = {};
+    for (final row in activityBookingCounts) {
+      final act = row['activities'];
+      if (act == null) continue;
+
+      final ownerId = act['user_id'];
+      activityCounts[ownerId] = (activityCounts[ownerId] ?? 0) + 1;
+    }
+
+// SORT RANKS
+    final sortedPostRanking = postCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final sortedActivityRanking = activityCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+// CURRENT USER RANK
+    int? postRank = sortedPostRanking.indexWhere((e) => e.key == profileUserId);
+    if (postRank != -1) postRank += 1;
+
+    int? activityRank =
+        sortedActivityRanking.indexWhere((e) => e.key == profileUserId);
+    if (activityRank != -1) activityRank += 1;
 
     setState(() {
       userRole = profile['role'];
@@ -94,10 +140,11 @@ class _ProfilePageState extends State<ProfilePage> {
       "activities": activities,
       "postCount": posts.length,
       "activityCount": activities.length,
+      "postRank": postRank,
+      "activityRank": activityRank,
     };
   }
 
-  // Upload profile picture
   Future<void> uploadProfilePicture() async {
     if (!isOwner) return;
 
@@ -105,54 +152,79 @@ class _ProfilePageState extends State<ProfilePage> {
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
 
-    final file = File(picked.path);
+    if (!mounted) return;
     setState(() => uploading = true);
 
-    String cloudName = "dledkzh8h";
-    String uploadPreset = "flutter_profile_upload";
-
     try {
-      final uri =
-          Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/image/upload");
+      final bytes = await picked.readAsBytes();
+      final base64Image = base64Encode(bytes);
 
-      final request = http.MultipartRequest('POST', uri)
-        ..fields['upload_preset'] = uploadPreset
-        ..fields['folder'] = 'profile_images'
-        ..fields['public_id'] = "${supabase.auth.currentUser!.id}_profile"
-        ..files.add(await http.MultipartFile.fromPath('file', file.path));
+      final mime = picked.mimeType ?? "image/jpeg";
 
-      final response = await request.send();
-      final resBody = await response.stream.bytesToString();
+      const cloudName = "dolaxfegs";
+      const uploadPreset = "post_tours";
+
+      final safeId = supabase.auth.currentUser!.id
+          .replaceAll("/", "_")
+          .replaceAll("\\", "_");
+
+      final url = Uri.parse(
+        "https://api.cloudinary.com/v1_1/$cloudName/image/upload",
+      );
+
+      final response = await http.post(
+        url,
+        body: {
+          "file": "data:$mime;base64,$base64Image",
+          "upload_preset": uploadPreset,
+          "folder": "profile_images",
+          "public_id": "${safeId}_profile",
+        },
+      );
+
+      print("STATUS: ${response.statusCode}");
+      print("BODY: ${response.body}");
 
       if (response.statusCode == 200) {
-        final data = json.decode(resBody);
+        final data = json.decode(response.body);
         final imageUrl = data['secure_url'];
 
         await supabase
             .from('profiles')
-            .update({'profile_image_url': imageUrl}).eq(
-                'id', supabase.auth.currentUser!.id);
+            .update({"profile_image_url": imageUrl}).eq(
+                "id", supabase.auth.currentUser!.id);
 
+        if (!mounted) return;
         setState(() {
           this.imageUrl = imageUrl;
           uploading = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Profile picture updated!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("✅ Profile picture updated!")),
+          );
+        }
       } else {
-        print("❌ Cloudinary upload failed: $resBody");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $resBody')),
-        );
+        if (!mounted) return;
         setState(() => uploading = false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Upload failed")),
+          );
+        }
       }
     } catch (e) {
       print("❌ Error uploading to Cloudinary: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+
+      if (!mounted) return;
       setState(() => uploading = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     }
   }
 
@@ -302,12 +374,53 @@ class _ProfilePageState extends State<ProfilePage> {
 
                 const SizedBox(height: 20),
 
-                Text(data['full_name'],
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(
+                  data['full_name'],
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+
                 const SizedBox(height: 4),
-                Text("@${data['username']}",
-                    style: const TextStyle(color: Colors.grey)),
+
+                Column(
+                  children: [
+                    Text(
+                      "@${data['username']}",
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    if (data['postRank'] != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "🏆 Posts Rank: #${data['postRank']}",
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    if (data['activityRank'] != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.purple,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "⭐ Activities Rank: #${data['activityRank']}",
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+
                 const SizedBox(height: 20),
 
                 // Bio Section

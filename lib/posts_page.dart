@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart'; // Import for DateFormat
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'bookings_page.dart'; // Ensure this exists
 import 'post_details_page.dart'; // Ensure this exists
@@ -1006,6 +1007,69 @@ class _PostsPageState extends State<PostsPage> {
               ),
 
               const SizedBox(height: 8),
+
+// 🌟 Heading Section (same style as Activities Page)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(25, 10, 25, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Explore Tours",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 72,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                        letterSpacing: 0.8,
+                        fontFamily: GoogleFonts.waterfall()
+                            .fontFamily, // If using GoogleFonts, replace with GoogleFonts.waterfall().fontFamily
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: const [
+                        Expanded(
+                          child: Divider(
+                            thickness: 1.5,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            "✦",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(
+                            thickness: 1.5,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Discover the best experiences around you",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
 
               // 🌸 Posts List
               Expanded(

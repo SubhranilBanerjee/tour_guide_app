@@ -253,9 +253,10 @@ class TicketPage extends StatelessWidget {
                               ),
                             );
                           },
-                          icon: const Icon(Icons.email, color: Colors.white),
+                          icon: const Icon(Icons.celebration,
+                              color: Color(0xffffda00)),
                           label: const Text(
-                            "Send Email",
+                            "Ben Voyage",
                             style: TextStyle(color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
